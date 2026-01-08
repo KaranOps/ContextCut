@@ -26,6 +26,7 @@ MANIFEST
 venv/
 env/
 ENV/
+.venv
 .env
 
 # ContextCut Data
@@ -42,3 +43,37 @@ data/outputs/*
 *.swp
 
 Architecture.png
+
+# OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing & Coverage
+.coverage
+.tox/
+.nox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+htmlcov/
+
+# Temporary
+tmp/
+temp/
+*.bak
+*.swp
+*.swo
