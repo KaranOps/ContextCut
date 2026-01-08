@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"), encoding="utf-16")
+load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"), encoding="utf-8")
 
 from app.services.vision_processor import VisionProcessor
 from app.core.config import settings
