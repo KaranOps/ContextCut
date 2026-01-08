@@ -80,7 +80,7 @@ class TranslationService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
                 ],
-                temperature=0.1,  # Low temperature for deterministic output
+                temperature=0.1, 
                 response_format={"type": "json_object"}
             )
             

@@ -29,7 +29,6 @@ async def test_transcription():
     transcriber = Transcriber()
     
     # Define paths (pointing to project root data)
-    # Assuming audio was extracted to data/processed/extracted_audio.mp3
     input_audio = os.path.join(backend_dir, "..", "data", "processed", "extracted_audio.mp3")
     input_audio = os.path.normpath(input_audio)
 
@@ -47,7 +46,7 @@ async def test_transcription():
     try:
         output = await transcriber.transcribe(input_audio)
         print("\n--- Transcription Result ---")
-        print(f"Full Text: {output['text'][:100]}...") # Print first 100 chars
+        print(f"Full Text: {output['text'][:100]}...") 
         print(f"Segments: {len(output['segments'])}")
         if output['segments']:
             print(f"First Segment: {output['segments'][0]}")
