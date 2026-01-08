@@ -1,0 +1,110 @@
+{
+  "broll_1.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ],
+  "broll_2.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ],
+  "broll_3.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ],
+  "broll_4.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ],
+  "broll_5.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ],
+  "broll_6.mp4": [
+    {
+      "timestamp": 0.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    },
+    {
+      "timestamp": 2.0,
+      "description": {
+        "activity": "",
+        "category": "Unknown",
+        "intent": "Error parsing response"
+      }
+    }
+  ]
+}
