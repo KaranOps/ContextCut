@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
+import { Github } from 'lucide-react';
 import UploadSection from './components/UploadSection';
 import ResultsSection from './components/ResultsSection';
 import { uploadBRoll, processTimeline, pollTaskStatus } from './api/client';
@@ -35,25 +36,23 @@ function AppContent() {
         setResults(null);
 
         try {
-            // 1. Upload B-Roll if exists
+            // Upload B-Roll if exists
             if (bRollFiles.length > 0) {
                 await uploadBRoll(bRollFiles, (progress) => console.log('B-Roll Upload:', progress));
             }
 
-            // 2. Process Timeline (Upload A-Roll & Start Task)
+            // Process Timeline (Upload A-Roll & Start Task)
             const { task_id } = await processTimeline(aRollFile, (progress) => console.log('A-Roll Upload:', progress));
 
-            // 3. Poll for Completion
+            // Poll for Completion
             const stopPolling = pollTaskStatus(task_id, (status) => {
                 console.log('Task Status:', status);
 
                 if (status.status === 'completed') {
-                    // Success
-                    setResults(status.result); 
+                    setResults(status.result);
                     setIsGenerating(false);
                     navigate('/results');
                 } else if (status.status === 'failed') {
-                    // Failure
                     console.error('Task Failed:', status.error);
                     setIsGenerating(false);
                     alert(`Generation Failed: ${status.error}`);
@@ -96,6 +95,17 @@ function AppContent() {
                     } />
                 </Routes>
             </div>
+
+            {/* GitHub Link */}
+            <a
+                href="https://github.com/KaranOps/ContextCut"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed bottom-6 right-6 p-3 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 hover:scale-110 transition-all duration-300 z-50 border border-gray-700"
+                title="View on GitHub"
+            >
+                <Github size={24} />
+            </a>
         </div>
     );
 }

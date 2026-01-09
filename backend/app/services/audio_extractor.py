@@ -33,7 +33,6 @@ class AudioExtractor:
         logger.info(f"Starting extraction: {input_path} -> {output_path}")
 
         try:
-            # Check if input file exists
             if not os.path.exists(input_path):
                 raise FileNotFoundError(f"Input file not found: {input_path}")
 

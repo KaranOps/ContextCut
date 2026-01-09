@@ -63,7 +63,7 @@ class Transcriber:
 
         logger.info(f"Processing: {audio_path}")
 
-        # Priority 1: Groq
+        # Groq
         if self.groq_client:
             try:
                 logger.info("Transcribing via Groq...")
@@ -71,7 +71,7 @@ class Transcriber:
             except Exception as e:
                 logger.warning(f"Groq failed: {e}. Falling back...")
 
-        # Priority 2: OpenAI
+        # OpenAI
         if self.openai_client:
             try:
                 logger.info("Transcribing via OpenAI...")
@@ -79,7 +79,7 @@ class Transcriber:
             except Exception as e:
                 logger.warning(f"OpenAI failed: {e}. Falling back...")
 
-        # Priority 3: Local
+        # Local
         logger.info("Transcribing via Local Whisper...")
         return self._transcribe_local(audio_path)
 

@@ -12,14 +12,14 @@ def test_health():
     try:
         response = requests.get(HEALTH_URL)
         if response.status_code == 200:
-            print("Server is UP!")
+            print("âœ… Server is UP!")
             print(response.json())
             return True
         else:
-            print(f"Server returned {response.status_code}")
+            print(f"âŒ Server returned {response.status_code}")
             return False
     except requests.exceptions.ConnectionError:
-        print("Could not connect to server. Is it running?")
+        print("âŒ Could not connect to server. Is it running?")
         print("Run: uvicorn app.main:app --reload")
         return False
 

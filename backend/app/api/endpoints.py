@@ -47,12 +47,9 @@ def save_catalog(catalog: Dict[str, Any]):
 
 import asyncio
 
-# ... imports ...
 
 # Global lock for catalog operations
 catalog_lock = asyncio.Lock()
-
-# ... (load/save_catalog helpers remain same) ...
 
 async def update_catalog_safe(new_entries: Dict[str, Any]):
     """Safely updates the catalog with a lock."""

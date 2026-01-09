@@ -120,8 +120,7 @@ class VectorService:
                         seg.get('visual_tag', ''),
                         seg.get('mood', '')
                     ]
-                    # Flatten nested description dict if it exists (e.g. from the test file example)
-                    # "description": {"activity": "...", ...}
+                    # Flatten nested description dict if it exists 
                     desc_field = seg.get('description')
                     if isinstance(desc_field, dict):
                         parts.extend([

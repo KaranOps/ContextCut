@@ -37,10 +37,10 @@ class TimelineGenerator:
         """
         logger.info("Generating timeline from transcript and B-roll catalog.")
 
-        # 1. Index the catalog first (Idempotent)
+        # Index the catalog first (Idempotent)
         self.vector_service.index_catalog(broll_catalog)
 
-        # 2. Pre-filter candidates for each segment
+        # Pre-filter candidates for each segment
         filtered_catalog_map = {} # segment_index -> list of candidates
         
         # We need to map segments to their filtered options to show the LLM
@@ -57,7 +57,7 @@ class TimelineGenerator:
                 # Let's pass all valid candidates.
                 seg_info["available_broll"] = candidates
             else:
-                seg_info["available_broll"] = [] # Explicitly empty
+                seg_info["available_broll"] = [] 
             
             transcript_with_options.append(seg_info)
 
@@ -67,7 +67,6 @@ class TimelineGenerator:
         # We send the transcript where each segment HAS the allowed b-roll options.
         user_content = json.dumps({
             "A-Roll Transcript with Options": transcript_with_options,
-            # we do not need the global catalog anymore as options are embedded
         }, indent=2)
 
         try:
@@ -97,16 +96,15 @@ class TimelineGenerator:
         """
         validated_events = []
         last_broll_end = -float('inf')
-        used_broll_timestamps: Dict[str, List[float]] = {} # b_roll_id -> list of start times
+        used_broll_timestamps: Dict[str, List[float]] = {} 
 
         # Lookup for A-roll segments
         # To handle potential floating point mismatches, we might want a tolerance, 
         # but for now we'll assume strict matching or index alignment if the LLM followed instructions.
-        # Alternatively, we iterate through the LLM's suggested events and validate them against the transcript.
         
         raw_events = raw_timeline.get("timeline", [])
         
-        # Sort raw events by start time just in case
+        # Sort raw events by start time 
         raw_events.sort(key=lambda x: x.get("a_roll_start", 0))
 
         # Check for total duration of A-roll to prevent overlaps beyond end
@@ -123,7 +121,7 @@ class TimelineGenerator:
         total_video_end = transcript[-1]["end"]
 
         for event in raw_events:
-            # 1. Confidence Threshold
+            # Confidence Threshold
             if event.get("confidence", 0) < settings.MIN_LLM_CONFIDENCE:
                 logger.info(f"Dropping event due to low confidence: {event}")
                 continue
@@ -135,23 +133,23 @@ class TimelineGenerator:
                 logger.warning(f"Dropping event: Start time {a_roll_start} does not match any A-roll segment.")
                 continue
 
-            # 2. Strict Duration Enforcement
+            # Strict Duration Enforcement
             # The B-roll must exactly match the A-roll segment duration
             actual_duration = a_roll_seg["end"] - a_roll_seg["start"]
             event["duration_sec"] = actual_duration 
             
-            # 3. Overlap Protection
+            # Overlap Protection
             # Ensure the clip doesn't go beyond total video length
             if a_roll_start + actual_duration > total_video_end + 0.1:
                 logger.warning(f"Dropping event: Segment exceeds total video duration.")
                 continue
 
-            # 4. Minimum Cut Duration
+            # Minimum Cut Duration
             if actual_duration < settings.MIN_BROLL_DURATION:
                 logger.info(f"Dropping event: Duration {actual_duration:.2f}s < {settings.MIN_BROLL_DURATION}s")
                 continue
 
-            # 5. Cool-down Check
+            # Cool-down Check
             # Time since the last B-roll ended must be >= COOL_DOWN
             # 'last_broll_end' tracks the end of the previous accepted B-roll
             time_since_last = a_roll_start - last_broll_end
@@ -159,7 +157,7 @@ class TimelineGenerator:
                 logger.info(f"Dropping event: Cool-down violation. gap={time_since_last:.2f}s < {settings.BROLL_COOL_DOWN_SECONDS}s")
                 continue
 
-            # 6. Visual Diversity Check
+            # Visual Diversity Check
             b_roll_id = event.get("b_roll_id")
             if b_roll_id:
                 # Check if this ID was used recently

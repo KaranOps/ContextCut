@@ -44,14 +44,14 @@ class TranslationService:
         if not segments:
             return []
 
-        # Priority 1: Groq
+        # Groq
         if self.groq_client:
             try:
                 return await self._translate_with_llm(self.groq_client, segments, "openai/gpt-oss-120b")
             except Exception as e:
                 logger.warning(f"Groq translation failed: {e}. Falling back...")
 
-        # Priority 2: OpenAI
+        # OpenAI
         if self.openai_client:
             try:
                 return await self._translate_with_llm(self.openai_client, segments, "gpt-4-turbo")

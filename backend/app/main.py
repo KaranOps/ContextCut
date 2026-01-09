@@ -21,7 +21,7 @@ app = FastAPI(
 
 # CORS Configuration
 origins = [
-    "http://localhost:5173", # Vite/React default
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API Router
+# API Router
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")

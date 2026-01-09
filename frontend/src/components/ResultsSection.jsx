@@ -25,7 +25,6 @@ export default function ResultsSection({ results }) {
                         {/* Map 'transcript' */}
                         {results.transcript?.map((item, idx) => (
                             <div key={idx} className="glass-card p-6 rounded-xl flex gap-4 hover:bg-slate-800/60 transition-colors">
-                                {/* Format 'start' to string time */}
                                 <span className="text-blue-400 font-mono text-sm whitespace-nowrap">
                                     {formatTime(item.start)}
                                 </span>
