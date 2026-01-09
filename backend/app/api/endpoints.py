@@ -158,6 +158,9 @@ async def run_timeline_pipeline(task_id: str, a_roll_path: str):
             transcript=segments, 
             broll_catalog=catalog
         )
+        
+        # Inject transcript into the result so Frontend can display it
+        timeline_result["transcript"] = segments
         print("================Generated Timeline================")
         
         # Save Output

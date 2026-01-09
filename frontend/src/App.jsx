@@ -49,7 +49,7 @@ function AppContent() {
 
                 if (status.status === 'completed') {
                     // Success
-                    setResults(status.result); // Assuming result matches Expected JSON format
+                    setResults(status.result); 
                     setIsGenerating(false);
                     navigate('/results');
                 } else if (status.status === 'failed') {

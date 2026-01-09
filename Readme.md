@@ -100,3 +100,42 @@ npm run dev
 4.  Click **"Generate Edit Plan"**.
 5.  Wait for the AI to analyze the semantic context and visual content.
 6.  View the generated timeline matching your B-roll to the spoken content.
+
+## Testing
+
+For developers, there are several test scripts available in the `backend/tests` directory to verify individual components and the full API pipeline.
+
+### Unit Tests
+These scripts verify specific services (Transcription, Vision, Timeline Logic) in isolation.
+
+```bash
+# Verify Audio Extraction & Transcription
+python backend/tests/manual_audio_test.py
+python backend/tests/manual_translation_test.py
+
+# Verify Vision Processing (Scene description)
+python backend/tests/manual_vision_test.py
+
+# Verify Timeline Generation Logic (Mock data)
+python backend/tests/manual_timeline_test.py
+```
+
+### Combined/Integration Test
+The `test_api_server.py` script tests the full end-to-end flow by interacting with the running API server.
+
+1.  **Ensure the Backend is running**:
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+2.  **Edit the Test Script** (Optional):
+    Open `backend/tests/test_api_server.py` and ensure the `BROLL_FILES` and `AROLL_FILE` paths point to valid video files on your machine.
+3.  **Run the Test**:
+    ```bash
+    python backend/tests/test_api_server.py
+    ```
+    This will:
+    - Check the API Health.
+    - Upload B-roll videos.
+    - Submit an A-roll video for processing.
+    - Poll the status until the generated timeline is complete.
+
