@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     MIN_BROLL_DURATION: float = float(os.getenv("MIN_BROLL_DURATION", "1.5"))
     BROLL_COOL_DOWN_SECONDS: float = float(os.getenv("BROLL_COOL_DOWN_SECONDS", "5.0"))
     BROLL_DIVERSITY_WINDOW_SECONDS: float = float(os.getenv("BROLL_DIVERSITY_WINDOW_SECONDS", "14.0"))
-    MIN_LLM_CONFIDENCE: float = float(os.getenv("MIN_LLM_CONFIDENCE", "0.6"))
+    MIN_LLM_CONFIDENCE: float = float(os.getenv("MIN_LLM_CONFIDENCE", "0.4"))
 
     # Vector Service / Model Switching
     EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "local")  # "local" or "openai"
