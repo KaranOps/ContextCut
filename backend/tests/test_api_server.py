@@ -12,14 +12,14 @@ def test_health():
     try:
         response = requests.get(HEALTH_URL)
         if response.status_code == 200:
-            print("âœ… Server is UP!")
+            print("Server is UP!")
             print(response.json())
             return True
         else:
-            print(f"âŒ Server returned {response.status_code}")
+            print(f"Server returned {response.status_code}")
             return False
     except requests.exceptions.ConnectionError:
-        print("âŒ Could not connect to server. Is it running?")
+        print("Could not connect to server. Is it running?")
         print("Run: uvicorn app.main:app --reload")
         return False
 
@@ -33,23 +33,23 @@ def test_upload_broll(broll_paths):
     try:
         for path in broll_paths:
             if not os.path.exists(path):
-                print(f"âš ï¸ Skipping missing file: {path}")
+                print(f"Skipping missing file: {path}")
                 continue
             f = open(path, "rb")
             opened_files.append(f)
             files.append(("files", (os.path.basename(path), f, "video/mp4")))
         
         if not files:
-            print("âŒ No valid files to upload.")
+            print("No valid files to upload.")
             return
 
         response = requests.post(url, files=files)
         
         if response.status_code == 200:
-            print("âœ… Upload Successful!")
+            print("Upload Successful!")
             print(response.json())
         else:
-            print(f"âŒ Upload Failed: {response.text}")
+            print(f"Upload Failed: {response.text}")
             
     finally:
         for f in opened_files:
@@ -60,7 +60,7 @@ def test_process_timeline(a_roll_path):
     url = f"{BASE_URL}/process-timeline"
     
     if not os.path.exists(a_roll_path):
-        print(f"âŒ A-roll file not found: {a_roll_path}")
+        print(f"A-roll file not found: {a_roll_path}")
         return None
 
     with open(a_roll_path, "rb") as f:
@@ -70,10 +70,10 @@ def test_process_timeline(a_roll_path):
     if response.status_code == 200:
         data = response.json()
         task_id = data.get("task_id")
-        print(f"âœ… Processing started! Task ID: {task_id}")
+        print(f"Processing started! Task ID: {task_id}")
         return task_id
     else:
-        print(f"âŒ Processing Failed: {response.text}")
+        print(f"Processing Failed: {response.text}")
         return None
 
 def poll_status(task_id):
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         sys.exit(1)
         
     if not BROLL_FILES and not os.path.exists(AROLL_FILE):
-        print("\nâš ï¸ PLEASE EDIT THIS SCRIPT to set valid 'BROLL_FILES' and 'AROLL_FILE' paths.")
+        print("\nPLEASE EDIT THIS SCRIPT to set valid 'BROLL_FILES' and 'AROLL_FILE' paths.")
         print(f"Script location: {os.path.abspath(__file__)}")
         sys.exit(0)
 
