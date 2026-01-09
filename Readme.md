@@ -1,6 +1,11 @@
 # ContextCut
 
+
 ContextCut is an AI-powered video editing tool that automatically synchronizes B-roll footage to your main A-roll video based on semantic context, creating a professional "AI Director" edit plan.
+
+## Architecture
+![Architecture Diagram](Architecture_ContextCut.png)
+
 
 ## Prerequisites
 

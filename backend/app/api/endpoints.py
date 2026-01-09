@@ -132,19 +132,25 @@ async def run_timeline_pipeline(task_id: str, a_roll_path: str):
         task_store[task_id]["status"] = "processing"
         task_store[task_id]["step"] = "transcribing"
         
-        # 1. Transcribe
+        print("================In run_timeline_pipeline================")
+        # Transcribe
         transcriber = Transcriber()
+        print("================CAlled Transcriber================")
+
         # Transcriber.transcribe is async
         transcription_result = await transcriber.transcribe(a_roll_path)
         segments = transcription_result.get("segments", [])
+        print("================Got segments================")
         
         task_store[task_id]["step"] = "generating_timeline"
         
-        # 2. Generate Timeline
+        # Generate Timeline
         # Load catalog for the generator
         catalog = load_catalog()
+        print("================Load the catalog================")
         
         timeline_generator = TimelineGenerator()
+        print("================Load the TimelineGenerator================")
         
         # TimelineGenerator.generate_timeline is sync
         timeline_result = await run_in_threadpool(
@@ -152,17 +158,21 @@ async def run_timeline_pipeline(task_id: str, a_roll_path: str):
             transcript=segments, 
             broll_catalog=catalog
         )
+        print("================Generated Timeline================")
         
-        # 3. Save Output
+        # Save Output
         output_filename = f"timeline_{task_id}.json"
         output_path = os.path.join(UPLOAD_DIR, output_filename)
+        print("================Saved Timeline================")
         
         with open(output_path, "w") as f:
             json.dump(timeline_result, f, indent=2)
+        print("================Written Timeline================")
             
         task_store[task_id]["status"] = "completed"
-        task_store[task_id]["result_url"] = f"/uploads/{output_filename}" # Mock URL
+        task_store[task_id]["result_url"] = f"/uploads/{output_filename}" 
         task_store[task_id]["result"] = timeline_result
+        print("================Completed Timeline================")
         
     except Exception as e:
         logger.exception(f"Pipeline failed for task {task_id}")
@@ -180,26 +190,34 @@ async def process_timeline(
     """
     task_id = str(uuid.uuid4())
     
+    print("================Task_id assigned================")
+
     # Save A-roll file
     file_location = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    print("================File saved================")
+
     # Initialize task status
     task_store[task_id] = {
         "status": "pending",
         "original_filename": file.filename,
         "task_id": task_id
     }
+    print("================Task status initialized================")
     
     # Add background task
     background_tasks.add_task(run_timeline_pipeline, task_id, file_location)
+
+    print("================Background task added================")
     
     return {
         "task_id": task_id,
         "message": "Processing started",
         "status_endpoint": f"/api/v1/status/{task_id}"
     }
+    print("================Response sent================")
 
 @router.get("/status/{task_id}")
 async def get_status(task_id: str):

@@ -43,7 +43,7 @@ async def test_translation():
     data_dir = os.path.join(project_root, "data")
     
     input_file = os.path.join(data_dir, "processed", "transcription_result_groq.json")
-    output_file = os.path.join(data_dir, "processed", "final_transcription_result_gpt-oss-120b.json")
+    output_file = os.path.join(data_dir, "processed", "final_transcription_result.json")
 
     # Read Input
     if not os.path.exists(input_file):

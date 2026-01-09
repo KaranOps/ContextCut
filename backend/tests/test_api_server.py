@@ -107,14 +107,17 @@ def poll_status(task_id):
             break
 
 if __name__ == "__main__":
-    # --- UPDATE THESE PATHS BEFORE RUNNING ---
     # Create some dummy or use real video paths
     BROLL_FILES = [
-        # r"C:\path\to\broll1.mp4",
-        # r"C:\path\to\broll2.mp4"
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_1.mp4",
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_2.mp4",
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_3.mp4",
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_4.mp4",
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_5.mp4",
+        r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\broll_6.mp4"
     ]
     
-    AROLL_FILE = r"C:\path\to\aroll.mp4" # Replace with real path
+    AROLL_FILE = r"c:\Users\karan\OneDrive\Desktop\Projects\ContextCut\data\uploads\a_roll.mp4" 
     
     print("--- ContextCut API Test ---")
     
