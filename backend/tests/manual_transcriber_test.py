@@ -52,7 +52,7 @@ async def test_transcription():
             print(f"First Segment: {output['segments'][0]}")
         
         # Save output to file
-        output_file = os.path.join(backend_dir, "..", "data", "processed", "transcription_result_groq.json")
+        output_file = os.path.join(backend_dir, "..", "data", "processed", "transcription_result_raw.json")
         output_file = os.path.normpath(output_file)
         
         with open(output_file, 'w', encoding='utf-8') as f:

@@ -17,11 +17,20 @@ class TimelineGenerator:
     """
 
     def __init__(self) -> None:
-        self.client = OpenAI(
-            api_key=settings.GROQ_API_KEY,
-            base_url="https://api.groq.com/openai/v1"
-        )
-        self.model = "llama-3.3-70b-versatile"
+        self.provider = settings.DIRECTOR_PROVIDER
+        self.model = settings.DIRECTOR_MODEL
+        self.client = None
+
+        logger.info(f"Initializing TimelineGenerator. Provider: {self.provider}, Model: {self.model}")
+
+        if self.provider == "openai" and settings.OPENAI_API_KEY:
+            self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        elif self.provider == "groq" and settings.GROQ_API_KEY:
+             self.client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=settings.GROQ_API_KEY
+            )
+        
         self.vector_service = VectorService()
 
     def generate_timeline(self, transcript: List[Dict[str, Any]], broll_catalog: Dict[str, Any]) -> Dict[str, Any]:
@@ -37,13 +46,16 @@ class TimelineGenerator:
         """
         logger.info("Generating timeline from transcript and B-roll catalog.")
 
+        if not self.client and self.provider != "local":
+             # If provider is local, we might need a local LLM call or mock?
+             # For now, if no client, we can't generate.
+             logger.error("No Director client available.")
+             return {"timeline": []}
+
         # Index the catalog first (Idempotent)
         self.vector_service.index_catalog(broll_catalog)
 
         # Pre-filter candidates for each segment
-        filtered_catalog_map = {} # segment_index -> list of candidates
-        
-        # We need to map segments to their filtered options to show the LLM
         transcript_with_options = []
         
         for idx, segment in enumerate(transcript):
@@ -52,9 +64,6 @@ class TimelineGenerator:
             
             seg_info = segment.copy()
             if candidates:
-                # Limit to top 3 for brevity in prompt if many
-                # But VectorService usually returns TOP_K (5). 
-                # Let's pass all valid candidates.
                 seg_info["available_broll"] = candidates
             else:
                 seg_info["available_broll"] = [] 
@@ -63,21 +72,31 @@ class TimelineGenerator:
 
         system_prompt = self._construct_system_prompt()
         
-        # We no longer send the FULL broll_catalog to the LLM. 
-        # We send the transcript where each segment HAS the allowed b-roll options.
         user_content = json.dumps({
             "A-Roll Transcript with Options": transcript_with_options,
         }, indent=2)
 
         try:
-            response = self.client.chat.completions.create(
-                messages=[
+            # Handle o1-series constraints if applicable (no system role? no temperature?)
+            # o1-mini supports temperature=1 fixed essentially.
+            # We'll set temperature=0.2 generally, but for o1 we might need to adjust or let API handle ignore.
+            
+            # Prepare base params
+            api_params = {
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Here is the input data:\n{user_content}"}
                 ],
-                model=self.model,
-                temperature=0.2,
-            ) 
+                "model": self.model,
+            }
+
+            # Add temperature only if NOT an o-series reasoning model (which often have fixed temp or distinct params)
+            # e.g. o1-mini, o3-mini
+            if not self.model.startswith("o"): 
+                 api_params["temperature"] = 0.2
+
+            # Basic call
+            response = self.client.chat.completions.create(**api_params) 
             
             raw_content = response.choices[0].message.content.strip()
             parsed_timeline = self._parse_json_response(raw_content)
@@ -111,19 +130,20 @@ class TimelineGenerator:
         if not transcript:
             return {"timeline": []}
             
-        # Helper to find relevant A-roll segment for a given start time
+        ordered_transcript_starts = [t["start"] for t in transcript]
         def find_segment(start_time):
-            for seg in transcript:
-                if abs(seg["start"] - start_time) < 0.1: # 100ms tolerance
+             # Simple proximity search
+             for seg in transcript:
+                if abs(seg["start"] - start_time) < 0.15: 
                     return seg
-            return None
+             return None
 
         total_video_end = transcript[-1]["end"]
 
         for event in raw_events:
             # Confidence Threshold
             if event.get("confidence", 0) < settings.MIN_LLM_CONFIDENCE:
-                logger.info(f"Dropping event due to low confidence: {event}")
+                logger.debug(f"Dropping event due to low confidence: {event}")
                 continue
 
             a_roll_start = event.get("a_roll_start")
@@ -134,27 +154,23 @@ class TimelineGenerator:
                 continue
 
             # Strict Duration Enforcement
-            # The B-roll must exactly match the A-roll segment duration
             actual_duration = a_roll_seg["end"] - a_roll_seg["start"]
             event["duration_sec"] = actual_duration 
             
             # Overlap Protection
-            # Ensure the clip doesn't go beyond total video length
             if a_roll_start + actual_duration > total_video_end + 0.1:
                 logger.warning(f"Dropping event: Segment exceeds total video duration.")
                 continue
 
             # Minimum Cut Duration
             if actual_duration < settings.MIN_BROLL_DURATION:
-                logger.info(f"Dropping event: Duration {actual_duration:.2f}s < {settings.MIN_BROLL_DURATION}s")
+                logger.debug(f"Dropping event: Duration {actual_duration:.2f}s < {settings.MIN_BROLL_DURATION}s")
                 continue
 
             # Cool-down Check
-            # Time since the last B-roll ended must be >= COOL_DOWN
-            # 'last_broll_end' tracks the end of the previous accepted B-roll
             time_since_last = a_roll_start - last_broll_end
             if time_since_last < settings.BROLL_COOL_DOWN_SECONDS:
-                logger.info(f"Dropping event: Cool-down violation. gap={time_since_last:.2f}s < {settings.BROLL_COOL_DOWN_SECONDS}s")
+                logger.debug(f"Dropping event: Cool-down violation. gap={time_since_last:.2f}s")
                 continue
 
             # Visual Diversity Check
@@ -163,7 +179,7 @@ class TimelineGenerator:
                 # Check if this ID was used recently
                 past_usages = used_broll_timestamps.get(b_roll_id, [])
                 if any(abs(a_roll_start - t) < settings.BROLL_DIVERSITY_WINDOW_SECONDS for t in past_usages):
-                    logger.info(f"Dropping event: Diversity violation for {b_roll_id}")
+                    logger.debug(f"Dropping event: Diversity violation for {b_roll_id}")
                     continue
             
             # If all checks pass, accept the event
@@ -180,36 +196,49 @@ class TimelineGenerator:
     def _construct_system_prompt(self) -> str:
         """Constructs the system prompt with dynamic config values."""
         return f"""
-                # Role: Senior AI Video Editor & Narrative Director
-                You are the primary intelligence for "SemanticSync," an automated video editing system. Your goal is to generate a precise JSON timeline that overlays B-roll footage onto a primary A-roll video based on semantic relevance and professional pacing.
+               # Role: Lead Narrative Director & AI Video Editor (System: SemanticSync)
+                You are the high-level intelligence responsible for the "Final Cut." Your goal is to transform a raw A-roll transcript into a visually engaging, professionally paced video by surgically inserting B-roll candidates based on semantic, technical, and narrative logic.
 
-                # Context
-                The A-roll is the speaker talking; the B-roll consists of various clips described by their visual activity, category, and intent.
+                # Narrative Context
+                - **A-Roll (Primary)**: The speaker's verbal journey and emotional beats.
+                - **B-Roll (Secondary)**: Visual metadata including `activity`, `category`, `technical` (shot_type, camera_movement, lighting), and `search_tags`.
 
-                # Core Directives
-                1. **Semantic Resonance**: Prioritize clips where the B-roll's `activity` matches the A-roll's `text` conceptually.
-                2. **Strict Candidate Usage**: You are provided with "available_broll" for each transcript segment. You MUST ONLY use clips from this list for that specific segment. If the list is empty, DO NOT place any B-roll there.
-                3. **Intent Matching**: Use "Product Demo" or "Showcase" intents for descriptive sentences, and "Establishing" or "Atmospheric" intents for general transitions.
-                4. **Pacing Constraints**:
-                    - **Duration Logic**: `duration_sec` MUST equal `a_roll_end - a_roll_start`.
-                    - **Minimum Cut**: Never insert a clip shorter than {settings.MIN_BROLL_DURATION} seconds. If a segment is shorter, skip it or merge it.
-                    - **Visual Diversity**: Do not use the same B-roll clip twice within {settings.BROLL_DIVERSITY_WINDOW_SECONDS} seconds.
-                    - **Cool-down**: Leave at least {settings.BROLL_COOL_DOWN_SECONDS} seconds of "breathing room" (A-roll only) between B-roll insertions to avoid over-stimulating the viewer.
+                # Decision-Making Framework
+                ## 1. Semantic Resonance (The "Why")
+                - Priority 1: Direct Match (The speaker mentions a specific object or action).
+                - Priority 2: Metaphorical Match (The speaker discusses 'growth'; show a 'panning shot of a skyline' or 'time-lapse of a sprout').
+                - Use the `search_tags` to bridge the gap between spoken words and visual descriptors.
 
-                # Output Schema
-                Return ONLY a valid JSON object. No conversational text.
-                            {{
-            "timeline": [
+                ## 2. Cinematic Continuity (The "Flow")
+                - **Pacing Anchor**: Match the B-roll's `camera_movement` to the speaker's tempo. 
+                    - Fast, punchy sentences = Handheld, Panning, or Zooming shots.
+                    - Calm, instructional sentences = Static or Tilt shots.
+                - **Visual Flow**: Avoid "Visual Jarring." If the current segment uses a 'Macro' shot, try to follow it with a 'Medium' shot rather than a 'Wide' shot to maintain a natural optical progression.
+
+                ## 3. Strict Operational Constraints (The "Rules")
+                - **Candidate Integrity**: You MUST ONLY select from the provided `available_broll` list for each segment. If a segment has no candidates or none are relevant, return "b_roll_id": null.
+                - **Cool-Down Enforcement**: Ensure at least {settings.BROLL_COOL_DOWN_SECONDS}s of A-roll is visible between B-roll clips. Do not over-edit.
+                - **Visual Diversity**: If `broll_1.mp4` was used at 10.0s, it cannot be used again until {settings.BROLL_DIVERSITY_WINDOW_SECONDS}s have passed.
+                - **Duration Accuracy**: `duration_sec` must precisely match `a_roll_end - a_roll_start`. Do not truncate or extend.
+
+                # Final Output Instruction
+                Return ONLY a valid JSON object. No preamble. No "Here is your timeline." Just the raw JSON.
+
                 {{
-                "a_roll_start": float,
-                "duration_sec": float,
-                "b_roll_id": "string",
-                "b_roll_start_offset": 0.0,
-                "confidence": float (0.0 to 1.0),
-                "reason": "Explain why this visual category/activity specifically reinforces this script line."
+                "timeline": [
+                    {{
+                    "a_roll_start": float,
+                    "duration_sec": float,
+                    "b_roll_id": "string",
+                    "b_roll_start_offset": 0.0,
+                    "confidence": float (0.0 to 1.0),
+                    "reason": "Technical rationale: I chose [BROLL_ID] because the [SHOT_TYPE] reinforces the [TEXT] while the [LIGHTING] maintains the established mood."
+                    }}
+                ]
                 }}
-            ]
-            }}
+
+                # Example Reasoning
+                "Chose broll_05 because the speaker discussed 'surgical precision' and the visual shows a 'Macro Close-up' of 'suturing,' which provides the exact detail required for this instructional beat."
             """
 
     def _parse_json_response(self, raw_content: str) -> Dict[str, Any]:

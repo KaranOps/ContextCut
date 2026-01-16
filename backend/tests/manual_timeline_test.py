@@ -101,7 +101,7 @@ def run_e2e_test():
     
     # Paths to real data
     base_dir = os.path.dirname(__file__)
-    transcript_path = os.path.join(base_dir, "../../data/processed/final_transcription_result_gpt-oss-120b.json")
+    transcript_path = os.path.join(base_dir, "../../data/processed/final_transcription_result.json")
     vision_path = os.path.join(base_dir, "../../data/processed/vision_results.json")
     
     # Load A-roll Transcript

@@ -18,7 +18,7 @@ except UnicodeDecodeError:
     print(".env is not UTF-8, trying UTF-16...")
     load_dotenv(env_path, encoding="utf-16")
 
-from app.services.translation_service import TranslationService
+from app.services.translator import TranslationService
 from app.core.config import settings
 
 # Configure logging
@@ -42,7 +42,7 @@ async def test_translation():
     project_root = os.path.dirname(backend_dir)
     data_dir = os.path.join(project_root, "data")
     
-    input_file = os.path.join(data_dir, "processed", "transcription_result_groq.json")
+    input_file = os.path.join(data_dir, "processed", "transcription_result_raw.json")
     output_file = os.path.join(data_dir, "processed", "final_transcription_result.json")
 
     # Read Input
@@ -65,7 +65,7 @@ async def test_translation():
     print(f"Found {len(segments)} segments. Translating...")
 
     try:
-        translated_segments = await service.translate_segments(segments)
+        translated_segments = await service.translate_if_needed(segments)
         
         # Construct Final Output
         # Combine translated text for the full text field

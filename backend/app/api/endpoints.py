@@ -8,7 +8,7 @@ from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from app.services.transcriber import Transcriber
-from app.services.translation_service import TranslationService
+from app.services.translator import TranslationService
 from app.services.timeline_generator import TimelineGenerator
 from app.services.vector_service import VectorService
 from app.services.vision_processor import VisionProcessor
@@ -142,7 +142,8 @@ async def run_timeline_pipeline(task_id: str, a_roll_path: str):
         # Translate to English (Architecture compliance)
         task_store[task_id]["step"] = "translating"
         translation_service = TranslationService()
-        segments = await translation_service.translate_segments(segments)
+        # UPDATED: Use translate_if_needed
+        segments = await translation_service.translate_if_needed(segments)
 
         
         task_store[task_id]["step"] = "generating_timeline"

@@ -2,17 +2,27 @@ import cv2
 import base64
 import time
 import os
+import json
 from typing import List, Dict, Optional
 from openai import OpenAI, RateLimitError
 from app.core.config import settings
 
 class VisionProcessor:
     def __init__(self):
-        self.client = OpenAI(
-            api_key=settings.GROQ_API_KEY,
-            base_url="https://api.groq.com/openai/v1"
-        )
-        self.model = "meta-llama/llama-4-maverick-17b-128e-instruct"
+        self.provider = settings.VISION_PROVIDER
+        self.model = settings.VISION_MODEL
+        self.client = None
+        
+        if self.provider == "openai" and settings.OPENAI_API_KEY:
+            self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        elif self.provider == "groq" and settings.GROQ_API_KEY:
+            self.client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=settings.GROQ_API_KEY
+            )
+        
+        # Log initialization
+        print(f"VisionProcessor initialized with Provider: {self.provider}, Model: {self.model}")
 
     def _encode_image(self, frame) -> str:
         """Encodes an OpenCV frame to a Base64 string."""
@@ -31,13 +41,18 @@ class VisionProcessor:
         """
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
+            
+        if self.provider == "local":
+             # Placeholder for local vision models (e.g., LLaVA) if integrated
+             print("Local vision processing specific logic not implemented. Returning empty.")
+             return []
 
         video = cv2.VideoCapture(video_path)
         fps = video.get(cv2.CAP_PROP_FPS)
         frame_interval = settings.VISION_FRAME_INTERVAL
         
         # Calculate frame step based on FPS and interval
-        # If FPS is 30 and interval is 5s, we need every 150th frame
+        if fps <= 0: fps = 30 # Fallback
         frame_step = int(fps * frame_interval)
         
         descriptions = []
@@ -61,12 +76,11 @@ class VisionProcessor:
                         })
                         
                         # Rate limiting - sleep for RPM limits
-                        time.sleep(2)
+                        # Optimize: Maybe make this configurable or adaptive
+                        time.sleep(1) 
                         
                     except Exception as e:
                         print(f"Error processing frame at {timestamp}s: {e}")
-                        import traceback
-                        traceback.print_exc()
                         # Continue to next frame even if one fails
                 
                 current_frame += 1
@@ -77,35 +91,48 @@ class VisionProcessor:
         return descriptions
 
     def _describe_frame(self, frame) -> Dict:
-        """Sends a frame to the Groq Vision API for description."""
+        """Sends a frame to the Vision API for description."""
         base64_image = self._encode_image(frame)
         prompt = '''
         # System Instruction
-            You are a Professional Media Analyst and Video Editor. Your task is to catalog video B-roll footage by describing the primary activity and semantic context of each frame.
+        You are a Cinematic Data Scientist and Video Indexing Expert. Your task is to extract frame-accurate semantic metadata for an automated non-linear editing (NLE) system called "ContextCut."
 
-            # Task
-            Analyze the provided image frame and generate a concise, high-level description of the specific activity occurring. 
+        # Task
+        Identify the technical and narrative attributes of the provided frame. Your analysis must be optimized for a vector-based retrieval system (RAG).
 
-            # Constraints
-            1. Focus strictly on the "Interaction" or "Activity" (e.g., 'trading on a terminal', 'applying moisturizer', 'flipping a burger').
-            2. Avoid generic descriptors like "a person is there" or describing static backgrounds/colors unless they define the activity (e.g., 'stock market tickers on screen').
-            3. Use the Present Tense exclusively (e.g., "Person is washing face" NOT "Person washed face").
-            4. Be specific to the domain (e.g., use "candlestick chart" for finance, "skincare routine" for cosmetics).
+        # Analysis Framework
+        1. **Dynamic Activity**: Use "Subject is [Verb]-ing [Object]" format. Describe the most prominent motion (e.g., 'Liquid is shimmering while being poured').
+        2. **Technical Shot Attributes**:
+            - **Framing**: Wide, Medium, Close-up, Macro, POV.
+            - **Camera Movement**: Static, Pan, Tilt, Zoom, Handheld, Drone.
+        3. **Environmental Context**: Define the lighting and vibe (e.g., 'Studio lit, minimalist', 'Natural sunlight, outdoor market').
+        4. **Keyword Expansion**: Provide 5 synonyms or related concepts for better semantic search (e.g., if activity is 'frying', keywords could be 'sizzle, kitchen, chef, heat, cooking').
 
-            # Few-Shot Examples for Guidance:
-            - Fast Food: "Chef is assembling a burger on a prep table."
-            - Cosmetics: "Close-up of hands applying serum to skin."
-            - Hygiene: "Person is scrubbing hands with soap under running water."
-            - Finance: "Digital display showing real-time green and red stock market candles."
-            - Retail: "Customer is tapping a credit card on a payment terminal."
+        # Output Schema (Return ONLY JSON)
+        {
+        "activity": "Detailed present-progressive action sentence.",
+        "category": "High-level domain (e.g., Healthcare, Gastronomy, IT).",
+        "intent": "Narrative utility (e.g., Transition, Detail, Hero, Establishing).",
+        "technical": {
+            "shot_type": "string",
+            "camera_movement": "string",
+            "lighting": "string"
+        },
+        "search_tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+        }
 
-            # Output Format
-            Return ONLY a JSON object:
-            {
-            "activity": "Detailed activity description",
-            "category": "Detected domain (e.g., Food, Finance, etc.)",
-            "intent": "The likely purpose of this shot (e.g., 'Product Demo', 'Atmospheric Background')"
-            }
+        # Example Output
+        {
+        "activity": "Surgeon is precisely suturing an incision under bright theatre lights.",
+        "category": "Medical",
+        "intent": "Process Detail",
+        "technical": {
+            "shot_type": "Macro",
+            "camera_movement": "Static",
+            "lighting": "Clinical, High-brightness"
+        },
+        "search_tags": ["surgery", "hospital", "precision", "healthcare", "operation"]
+        }
         '''
 
         raw_content = ""
@@ -122,7 +149,6 @@ class VisionProcessor:
                 clean_content = clean_content[:-3]
             clean_content = clean_content.strip()
 
-            import json
             return json.loads(clean_content)
             
         except RateLimitError:
@@ -139,6 +165,10 @@ class VisionProcessor:
             }
 
     def _make_api_call(self, base64_image: str, prompt: str) -> str:
+        if not self.client:
+             raise RuntimeError("Vision API Client not initialized.")
+
+        # Note: API format is compatible for OpenAI and Groq (Llama vision)
         response = self.client.chat.completions.create(
             messages=[
                 {
