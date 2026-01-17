@@ -1,7 +1,16 @@
 import { CheckCircle, Film, ChevronRight } from 'lucide-react';
 
 export default function ResultsSection({ results }) {
-    if (!results) return null;
+    console.log("ResultsSection received:", results);
+
+    if (!results) {
+        return (
+            <div className="text-center p-12 text-slate-400">
+                <p>Waiting for results data...</p>
+                <span className="text-xs opacity-50">(If this persists, check console logs)</span>
+            </div>
+        );
+    }
 
     // Helper to format seconds into MM:SS
     const formatTime = (seconds) => {

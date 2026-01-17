@@ -27,6 +27,19 @@ class StorageService:
                     logger.error(f"Failed to initialize Supabase client: {e}")
                     self.provider = "local"
 
+    def _save_local(self, file_path: str, bucket_name: str, dest_path: str) -> str:
+        """Helper to save file locally."""
+        target_dir = os.path.join(settings.DATA_DIR, "uploads", bucket_name)
+        os.makedirs(target_dir, exist_ok=True)
+        
+        final_path = os.path.join(target_dir, dest_path)
+        # Ensure distinct paths before copying
+        if os.path.abspath(file_path) != os.path.abspath(final_path):
+            shutil.copy2(file_path, final_path)
+            
+        logger.info(f"Stored locally: {final_path}")
+        return str(final_path)
+
     def upload_file(self, file_path: str, bucket_name: str = "media", destination_path: str = None) -> str:
         """
         Uploads a file to the configured storage provider.
@@ -42,7 +55,6 @@ class StorageService:
                     file_content = f.read()
                 
                 # Upload to Supabase Storage
-                # Note: 'upsert' option might be needed depending on policy
                 response = self.supabase.storage.from_(bucket_name).upload(
                     path=dest_path,
                     file=file_content,
@@ -55,31 +67,33 @@ class StorageService:
                 return public_url
                 
             except Exception as e:
-                logger.error(f"Supabase upload failed: {e}. Falling back to local copy.")
-                # Fallthrough to local behavior on failure? Or raise?
-                # For robust hybrid, let's fallthrough or raise. 
-                # Ideally raise, but for user testing fallback is nice.
-                # Let's raise to ensure they know cloud failed.
-                raise e
+                # Helper to check for bucket not found error
+                # Supabase/Postgrest errors vary, often standard HTTP exceptions or dicts
+                error_str = str(e).lower()
+                if "bucket not found" in error_str:
+                    logger.warning(f"Bucket '{bucket_name}' not found. Attempting to create it...")
+                    try:
+                        self.supabase.storage.create_bucket(bucket_name, options={"public": True})
+                        
+                        # Resize/read file again if needed (cursor might be at end if read previously?)
+                        # We read into 'file_content' variable, so we can reuse it.
+                        
+                        self.supabase.storage.from_(bucket_name).upload(
+                            path=dest_path,
+                            file=file_content,
+                            file_options={"upsert": "true"}
+                        )
+                        public_url = self.supabase.storage.from_(bucket_name).get_public_url(dest_path)
+                        logger.info(f"Uploaded to Supabase after creation: {public_url}")
+                        return public_url
+                    except Exception as create_err:
+                        logger.error(f"Failed to create bucket or retry upload: {create_err}")
+                else:
+                    logger.error(f"Supabase upload failed: {e}.")
+                    raise e
 
         else: # Local Provider
-            # Mimic "upload" by copying to a persistent uploads dir if needed, 
-            # or just returning the path if it's already in a mostly permanent place.
-            # Assuming 'uploads' dir in root as the "bucket" analogue.
-            
-            # For simplicity in local mode, we might just return the absolute path 
-            # if the file is already on disk.
-            # BUT, if we want to simulate an upload to a specific "bucket" folder:
-            
-            target_dir = os.path.join(settings.DATA_DIR, "uploads", bucket_name)
-            os.makedirs(target_dir, exist_ok=True)
-            
-            final_path = os.path.join(target_dir, dest_path)
-            if os.path.abspath(file_path) != os.path.abspath(final_path):
-                shutil.copy2(file_path, final_path)
-                
-            logger.info(f"Stored locally: {final_path}")
-            return str(final_path)
+            return self._save_local(file_path, bucket_name, dest_path)
 
     def get_public_url(self, path: str, bucket_name: str = "media") -> str:
         if self.provider == "supabase":

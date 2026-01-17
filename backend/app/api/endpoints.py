@@ -278,11 +278,20 @@ async def get_status(media_id: int):
     
     if status == "not_found":
         raise HTTPException(status_code=404, detail="Task not found")
-        
-    return {
+    
+    response = {
         "task_id": media_id,
         "status": status
-        # checking endpoints logic... frontend might expect 'step' or 'result_url'
-        # The simple StatusManager only had 'status'. 
-        # If frontend breaks, we might need to expand StatusManager return.
     }
+    
+    if status == "completed":
+        storage = StorageService()
+        # Reconstruct the expected result filename based on convention
+        result_filename = f"timeline_{media_id}.json"
+        try:
+            result_url = storage.get_public_url(result_filename, bucket_name="results")
+            response["result_url"] = result_url
+        except Exception as e:
+             logger.error(f"Failed to get result URL for task {media_id}: {e}")
+             
+    return response

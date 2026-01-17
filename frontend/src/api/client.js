@@ -106,4 +106,13 @@ export const pollTaskStatus = (taskId, onStatusChange, interval = 2000) => {
     };
 };
 
+/**
+ * Fetch result JSON from URL
+ * @param {string} url - URL to fetch
+ */
+export const fetchResult = async (url) => {
+    const response = await axios.get(url);
+    return response.data;
+};
+
 export default apiClient;

@@ -4,7 +4,7 @@ import Header from './components/Header';
 import { Github } from 'lucide-react';
 import UploadSection from './components/UploadSection';
 import ResultsSection from './components/ResultsSection';
-import { uploadBRoll, processTimeline, pollTaskStatus } from './api/client';
+import { uploadBRoll, processTimeline, pollTaskStatus, fetchResult } from './api/client';
 
 function AppContent() {
     const [aRollFile, setARollFile] = useState(null);
@@ -45,13 +45,37 @@ function AppContent() {
             const { task_id } = await processTimeline(aRollFile, (progress) => console.log('A-Roll Upload:', progress));
 
             // Poll for Completion
-            const stopPolling = pollTaskStatus(task_id, (status) => {
-                console.log('Task Status:', status);
+            const stopPolling = pollTaskStatus(task_id, async (status) => {
+                console.log('Task Status Updated:', status);
 
                 if (status.status === 'completed') {
-                    setResults(status.result);
-                    setIsGenerating(false);
-                    navigate('/results');
+                    if (status.result_url) {
+                        try {
+                            console.log('Fetching results from:', status.result_url);
+                            // Use static import now
+                            const data = await fetchResult(status.result_url);
+                            console.log('Fetched Data Payload:', data);
+
+                            if (data) {
+                                setResults(data);
+                                setIsGenerating(false);
+                                navigate('/results');
+                            } else {
+                                console.error('Fetched data is null/undefined!');
+                                setIsGenerating(false);
+                                alert('Failed to load results data (empty response).');
+                            }
+
+                        } catch (err) {
+                            console.error('Failed to fetch results:', err);
+                            setIsGenerating(false);
+                            alert('Task completed, but failed to load results.');
+                        }
+                    } else {
+                        console.warn('Completed but no result_url provided.');
+                        setIsGenerating(false);
+                        alert('Server returned no result URL.');
+                    }
                 } else if (status.status === 'failed') {
                     console.error('Task Failed:', status.error);
                     setIsGenerating(false);
