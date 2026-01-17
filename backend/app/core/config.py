@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
+    # Cloud / Database Keys
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
+    SUPABASE_DB_URL: str = os.getenv("SUPABASE_DB_URL", "") # connection string
+    CLOUDINARY_URL: str = os.getenv("CLOUDINARY_URL", "")
+    
+    # Storage Configuration
+    STORAGE_PROVIDER: Literal["local", "supabase"] = os.getenv("STORAGE_PROVIDER", "supabase")
+    TEMP_DIR: str = os.getenv("TEMP_DIR", os.path.join(DATA_DIR, "temp_processing"))
+
     # Default Global Provider (derived or explicit)
     # The individual providers below will default to this if not set
     

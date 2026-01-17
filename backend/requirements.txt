@@ -11,6 +11,10 @@ fastapi
 uvicorn
 python-multipart
 langdetect
+supabase
+sqlalchemy
+psycopg2-binary
+python-multipart
 
 # annotated-types==0.7.0
 # anyio==4.12.1
